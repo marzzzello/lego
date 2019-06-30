@@ -96,8 +96,8 @@ type ResponseMsg struct {
 }
 
 func (r *ResponseMsg) Error() string {
-	return fmt.Sprintf("an error occurred during the action %s: [Status=%s, StatusCode=%d, ShortMessage=%s, LongMessage=%s]",
-		r.Action, r.Status, r.StatusCode, r.ShortMessage, r.LongMessage)
+	return fmt.Sprintf("an error occurred during the action %s: [ServerRequestID=%s, ClientRequestID=%s, Status=%s, StatusCode=%d, ShortMessage=%s, LongMessage=%s, ResponseData=%s]",
+		r.Action, r.ServerRequestID, r.ClientRequestID, r.Status, r.StatusCode, r.ShortMessage, r.LongMessage, r.ResponseData)
 }
 
 // LoginResponse response to login action.
@@ -150,7 +150,6 @@ func (c *Client) Login() (string, error) {
 			ClientRequestID: "",
 		},
 	}
-
 	var responseData LoginResponse
 	err := c.doRequest(payload, &responseData)
 	if err != nil {
@@ -233,6 +232,21 @@ func (c *Client) GetDNSRecords(hostname, apiSessionID string) ([]DNSRecord, erro
 // and returns body of response
 func (c *Client) doRequest(payload interface{}, responseData interface{}) error {
 	body, err := json.Marshal(payload)
+
+	const (
+		InfoColor    = "\033[1;34m%s\033[0m"
+		NoticeColor  = "\033[1;36m%s\033[0m"
+		WarningColor = "\033[1;33m%s\033[0m"
+		ErrorColor   = "\033[1;31m%s\033[0m"
+		DebugColor   = "\033[0;36m%s\033[0m"
+	)
+
+	// DEBUG
+	fmt.Println()
+	fmt.Printf(DebugColor, "\tRequest body: ")
+	fmt.Printf(DebugColor, string(body))
+	fmt.Println()
+
 	if err != nil {
 		return err
 	}
@@ -262,6 +276,12 @@ func (c *Client) doRequest(payload interface{}, responseData interface{}) error 
 	if respMsg.Status != success {
 		return respMsg
 	}
+
+	// DEBUG
+	fmt.Println()
+	fmt.Printf(InfoColor, "\tResponseData: ")
+	fmt.Printf(InfoColor, string(respMsg.ResponseData))
+	fmt.Println()
 
 	if responseData != nil {
 		err = json.Unmarshal(respMsg.ResponseData, responseData)
